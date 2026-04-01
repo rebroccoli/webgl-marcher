@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ray Marcher</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: #1a1a1a;
+        overflow: hidden;
+      }
+
+      canvas {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+      }
+
+      #controls {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        background: rgba(0, 0, 0, 0.8);
+        padding: 20px;
+        border-radius: 8px;
+        color: #fff;
+        font-size: 14px;
+        max-width: 350px;
+        border: 1px solid #444;
+      }
+
+      #controls h2 {
+        margin-bottom: 15px;
+        font-size: 16px;
+      }
+
+      .control-group {
+        margin-bottom: 15px;
+      }
+
+      .control-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 500;
+      }
+
+      .control-group select,
+      .control-group input {
+        width: 100%;
+        padding: 6px 8px;
+        background: #333;
+        border: 1px solid #555;
+        color: #fff;
+        border-radius: 4px;
+        font-size: 13px;
+      }
+
+      .control-group input[type="checkbox"] {
+        width: auto;
+        margin-right: 8px;
+      }
+
+      .checkbox-label {
+        display: flex;
+        align-items: center;
+        margin-top: 8px;
+      }
+
+      button {
+        width: 100%;
+        padding: 8px;
+        background: #0066cc;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 500;
+        transition: background 0.2s;
+      }
+
+      button:hover {
+        background: #0052a3;
+      }
+
+      .info {
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        background: rgba(0, 0, 0, 0.8);
+        padding: 15px;
+        border-radius: 8px;
+        color: #aaa;
+        font-size: 12px;
+        border: 1px solid #444;
+        max-width: 350px;
+      }
+
+      .info p {
+        margin-bottom: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+
+    <div id="controls">
+      <h2>Ray Marcher Controls</h2>
+
+      <div class="control-group">
+        <label for="shapeType">Shape Type:</label>
+        <select id="shapeType">
+          <option value="0">Sphere</option>
+          <option value="1">Cube</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <button id="spawnButton">Spawn At Crosshair</button>
+      </div>
+
+      <div class="control-group">
+        <label class="checkbox-label">
+          <input type="checkbox" id="enableClouds" />
+          Enable Clouds
+        </label>
+      </div>
+
+      <div class="control-group">
+        <label for="shapeX">Shape Position X:</label>
+        <input
+          type="range"
+          id="shapeX"
+          min="-10"
+          max="10"
+          step="0.1"
+          value="0"
+        />
+        <span id="shapeXValue">0.0</span>
+      </div>
+
+      <div class="control-group">
+        <label for="shapeY">Shape Position Y:</label>
+        <input
+          type="range"
+          id="shapeY"
+          min="-5"
+          max="10"
+          step="0.1"
+          value="0"
+        />
+        <span id="shapeYValue">0.0</span>
+      </div>
+
+      <div class="control-group">
+        <label for="shapeZ">Shape Position Z:</label>
+        <input
+          type="range"
+          id="shapeZ"
+          min="-10"
+          max="10"
+          step="0.1"
+          value="0"
+        />
+        <span id="shapeZValue">0.0</span>
+      </div>
+    </div>
+
+    <div class="info">
+      <p><strong>Controls:</strong></p>
+      <p>W/A/S/D - Move</p>
+      <p>Arrow Keys - Look Around</p>
+      <p>Space - Up</p>
+      <p>Shift - Down</p>
+      <p id="status" style="color: #ffaa00; margin-top: 10px">
+        <strong>Loading...</strong>
+      </p>
+    </div>
+
+    <script src="raymarcher-webgl.js"></script>
+  </body>
+</html>
