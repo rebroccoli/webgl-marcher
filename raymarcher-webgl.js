@@ -320,19 +320,9 @@ class RayMarcherWebGL {
       moveDirection[2] += right[2];
     }
 
-    // Vertical movement
-    if (this.keys[" "]) {
-      moveDirection[1] += 1.0;
-    }
-    if (this.keys["shift"]) {
-      moveDirection[1] -= 1.0;
-    }
-
-    // Apply movement
+    // Apply movement (horizontal only)
     const moveLength = Math.sqrt(
-      moveDirection[0] * moveDirection[0] +
-        moveDirection[1] * moveDirection[1] +
-        moveDirection[2] * moveDirection[2],
+      moveDirection[0] * moveDirection[0] + moveDirection[2] * moveDirection[2],
     );
 
     if (moveLength > 0.0) {
@@ -340,22 +330,13 @@ class RayMarcherWebGL {
         moveDirection,
         (this.moveSpeed * deltaTime) / moveLength,
       );
-      this.cameraPosition = this.addVectors(
-        this.cameraPosition,
-        normalizedMove,
-      );
+      this.cameraPosition[0] += normalizedMove[0];
+      this.cameraPosition[2] += normalizedMove[2];
     }
 
-    // Ground constraints
-    const FLOOR_LEVEL = 0.0;
+    // Keep camera at eye level
     const PLAYER_EYE_HEIGHT = 1.7;
-    const MAX_HEIGHT = 50.0;
-
-    this.cameraPosition[1] = Math.max(
-      this.cameraPosition[1],
-      FLOOR_LEVEL + PLAYER_EYE_HEIGHT,
-    );
-    this.cameraPosition[1] = Math.min(this.cameraPosition[1], MAX_HEIGHT);
+    this.cameraPosition[1] = PLAYER_EYE_HEIGHT;
 
     // Rotation
     if (this.keys["arrowleft"]) {

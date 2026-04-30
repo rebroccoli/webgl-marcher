@@ -283,16 +283,15 @@ vec3 marchClouds(vec3 ro, vec3 rd, float maxDistToObject) {
 }
 
 void main() {
-    // Normalize fragment coordinates to NDC space
+    // Normalize fragment coordinates to NDC space and correct for aspect ratio
     vec2 uv = fragCoord;
-    vec2 screenUV = (fragCoord + 1.0) / 2.0;
-    uv.y *= (resolution.y / resolution.x);
+    uv.x *= (resolution.x / resolution.y);
     
     // Set up camera
     mat3 ca = setCamera(cameraPosition, cameraTarget, 0.0);
     
     // Create ray direction
-    vec3 rayDir = normalize(ca * vec3(fragCoord.x, fragCoord.y, 2.0));
+    vec3 rayDir = normalize(ca * vec3(uv.x, uv.y, 2.0));
     
     // Ray march
     float dist = rayMarch(cameraPosition, rayDir);
@@ -312,13 +311,13 @@ void main() {
             finalColor = mix(finalColor, finalColor + cloudColor, 0.6);
         }
     } else {
-        // Sky color
-        finalColor = vec3(0.0, 0.0, 0.4) + vec3(0.0, 0.1, 0.3) * rayDir.y;
+        // Sky color - light blue base
+        finalColor = vec3(0.5, 0.7, 0.9);
         
-        // Render clouds if enabled even when no object is hit
+        // Render clouds on top if enabled
         if (enableClouds) {
             vec3 cloudColor = marchClouds(cameraPosition, rayDir, MAX_DIST);
-            finalColor = mix(finalColor, finalColor + cloudColor, 0.6);
+            finalColor += cloudColor;
         }
     }
     
