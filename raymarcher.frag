@@ -9,9 +9,9 @@ uniform float time;
 uniform vec2 resolution;
 uniform vec3 cameraPosition;
 uniform vec3 cameraTarget;
-uniform int shapeType; // 0 = sphere, 1 = cube
-uniform vec3 shapePosition;
-uniform bool hasShape;
+uniform int shapeCount;
+uniform int shapeTypes[64];
+uniform vec3 shapePositions[64];
 uniform bool enableClouds;
 
 // Ray marching constants
@@ -137,17 +137,20 @@ float sdPlane(vec3 p, vec3 n, float h) {
     return dot(p, n) + h;
 }
 
+float shapeSDF(vec3 localP, int type) {
+    if (type == 0) {
+        return sdSphere(localP, 1.0);
+    } else {
+        vec3 rotatedP = rotateY(0.785398) * rotateX(0.523599) * localP;
+        return sdBox(rotatedP, vec3(0.7, 0.7, 0.7));
+    }
+}
+
 float sceneSDF(vec3 p) {
     float shape = MAX_DIST;
     
-    if (hasShape) {
-        vec3 localP = p - shapePosition;
-        if (shapeType == 0) {
-            shape = sdSphere(localP, 1.0);
-        } else {
-            vec3 rotatedP = rotateY(0.785398) * rotateX(0.523599) * localP;
-            shape = sdBox(rotatedP, vec3(0.7, 0.7, 0.7));
-        }
+    for (int i = 0; i < shapeCount; i++) {
+        shape = min(shape, shapeSDF(p - shapePositions[i], shapeTypes[i]));
     }
     
     float ground = sdPlane(p, vec3(0.0, 1.0, 0.0), 1.0);
@@ -156,14 +159,9 @@ float sceneSDF(vec3 p) {
 
 int getHitObject(vec3 p) {
     float shape = MAX_DIST;
-    if (hasShape) {
-        vec3 localP = p - shapePosition;
-        if (shapeType == 0) {
-            shape = sdSphere(localP, 1.0);
-        } else {
-            vec3 rotatedP = rotateY(0.785398) * rotateX(0.523599) * localP;
-            shape = sdBox(rotatedP, vec3(0.7, 0.7, 0.7));
-        }
+
+    for (int i = 0; i < shapeCount; i++) {
+        shape = min(shape, shapeSDF(p - shapePositions[i], shapeTypes[i]));
     }
     
     float ground = sdPlane(p, vec3(0.0, 1.0, 0.0), 1.0);
@@ -173,6 +171,24 @@ int getHitObject(vec3 p) {
     } else {
         return 2;
     }
+}
+
+// Returns index of closest shape at p, or -1 if ground is closer
+int getHitShapeIndex(vec3 p) {
+    float best = MAX_DIST;
+    int idx = -1;
+
+    for (int i = 0; i < shapeCount; i++) {
+        float d = shapeSDF(p - shapePositions[i], shapeTypes[i]);
+        if (d < best) {
+            best = d;
+            idx = i;
+        }
+    }
+
+    float ground = sdPlane(p, vec3(0.0, 1.0, 0.0), 1.0);
+    if (ground < best) return -1;
+    return idx;
 }
 
 float rayMarch(vec3 ro, vec3 rd) {
@@ -204,13 +220,13 @@ vec3 getNormal(vec3 p) {
     ));
 }
 
-vec3 calculateLighting(vec3 p, vec3 normal, vec3 viewDir, int hitObject) {
+vec3 calculateLighting(vec3 p, vec3 normal, vec3 viewDir, int hitObject, int shapeIdx) {
     vec3 lightPos = vec3(5.0, 5.0, 5.0);
     vec3 lightDir = normalize(lightPos - p);
     
     vec3 baseColor;
     if (hitObject == 1) {
-        if (shapeType == 0) {
+        if (shapeIdx >= 0 && shapeTypes[shapeIdx] == 0) {
             baseColor = vec3(0.8, 0.8, 0.9);
         } else {
             baseColor = vec3(1.0, 0.4, 0.7);
@@ -286,8 +302,9 @@ void main() {
         vec3 hitPoint = cameraPosition + rayDir * dist;
         vec3 normal = getNormal(hitPoint);
         int hitObject = getHitObject(hitPoint);
+        int shapeIdx = getHitShapeIndex(hitPoint);
         
-        finalColor = calculateLighting(hitPoint, normal, -rayDir, hitObject);
+        finalColor = calculateLighting(hitPoint, normal, -rayDir, hitObject, shapeIdx);
         
         // Add cloud color if enabled
         if (enableClouds) {

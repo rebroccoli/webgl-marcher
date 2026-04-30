@@ -1,5 +1,7 @@
 // Ray Marcher WebGL Implementation
 
+const MAX_SHAPES = 64;
+
 class RayMarcherWebGL {
   constructor() {
     this.canvas = document.getElementById("canvas");
@@ -35,9 +37,10 @@ class RayMarcherWebGL {
       this.currentTime = 0.0;
 
       // Scene state
-      this.hasShape = false;
+      // this.hasShape = false;
       this.shapeType = 0;
-      this.shapePosition = [0.0, 0.0, 0.0];
+      // this.shapePosition = [0.0, 0.0, 0.0];
+      this.shapes = [];
       this.enableClouds = false;
 
       // Input state
@@ -104,9 +107,9 @@ class RayMarcherWebGL {
         "cameraPosition",
       ),
       cameraTarget: this.gl.getUniformLocation(this.program, "cameraTarget"),
-      shapeType: this.gl.getUniformLocation(this.program, "shapeType"),
-      shapePosition: this.gl.getUniformLocation(this.program, "shapePosition"),
-      hasShape: this.gl.getUniformLocation(this.program, "hasShape"),
+      shapeCount: this.gl.getUniformLocation(this.program, "shapeCount"),
+      shapeTypes: this.gl.getUniformLocation(this.program, "shapeTypes"),
+      shapePositions: this.gl.getUniformLocation(this.program, "shapePositions"),
       enableClouds: this.gl.getUniformLocation(this.program, "enableClouds"),
     };
   }
@@ -218,17 +221,17 @@ class RayMarcherWebGL {
     const shapeZSlider = document.getElementById("shapeZ");
 
     shapeXSlider.addEventListener("input", (e) => {
-      this.shapePosition[0] = parseFloat(e.target.value);
+      // this.shapePosition[0] = parseFloat(e.target.value);
       document.getElementById("shapeXValue").textContent = e.target.value;
     });
 
     shapeYSlider.addEventListener("input", (e) => {
-      this.shapePosition[1] = parseFloat(e.target.value);
+      // this.shapePosition[1] = parseFloat(e.target.value);
       document.getElementById("shapeYValue").textContent = e.target.value;
     });
 
     shapeZSlider.addEventListener("input", (e) => {
-      this.shapePosition[2] = parseFloat(e.target.value);
+      // this.shapePosition[2] = parseFloat(e.target.value);
       document.getElementById("shapeZValue").textContent = e.target.value;
     });
   }
@@ -244,6 +247,12 @@ class RayMarcherWebGL {
   }
 
   spawnShape() {
+
+    if (this.shapes.length >= MAX_SHAPES) {
+      console.warn("Max shapes reached");
+      return;
+    }
+
     const groundY = -1.0;
     const normalizedDir = this.normalizeVector(this.cameraDirection);
 
@@ -262,8 +271,7 @@ class RayMarcherWebGL {
       }
     }
 
-    this.shapePosition = spawnPoint;
-    this.hasShape = true;
+    this.shapes.push({ type: this.shapeType, position: [...spawnPoint] });
 
     // Update sliders
     document.getElementById("shapeX").value = spawnPoint[0];
@@ -401,10 +409,26 @@ class RayMarcherWebGL {
     );
     this.gl.uniform3fv(this.uniforms.cameraPosition, this.cameraPosition);
     this.gl.uniform3fv(this.uniforms.cameraTarget, this.cameraTarget);
-    this.gl.uniform1i(this.uniforms.shapeType, this.shapeType);
-    this.gl.uniform3fv(this.uniforms.shapePosition, this.shapePosition);
-    this.gl.uniform1i(this.uniforms.hasShape, this.hasShape ? 1 : 0);
+    // this.gl.uniform1i(this.uniforms.shapeType, this.shapeType);
+    // this.gl.uniform3fv(this.uniforms.shapePosition, this.shapePosition);
+    // this.gl.uniform1i(this.uniforms.hasShape, this.hasShape ? 1 : 0);
     this.gl.uniform1i(this.uniforms.enableClouds, this.enableClouds ? 1 : 0);
+
+    // Upload all shapes
+    const count = this.shapes.length;
+    this.gl.uniform1i(this.uniforms.shapeCount, count);
+    if (count > 0) {
+      const positions = new Float32Array(count * 3);
+      const types = new Int32Array(count);
+      for (let i = 0; i < count; i++) {
+        positions[i * 3 + 0] = this.shapes[i].position[0];
+        positions[i * 3 + 1] = this.shapes[i].position[1];
+        positions[i * 3 + 2] = this.shapes[i].position[2];
+        types[i] = this.shapes[i].type;
+      }
+      this.gl.uniform3fv(this.uniforms.shapePositions, positions);
+      this.gl.uniform1iv(this.uniforms.shapeTypes, types);
+    }
 
     // Draw
     this.gl.bindVertexArray(this.vao);
