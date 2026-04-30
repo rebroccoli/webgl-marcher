@@ -39,7 +39,7 @@ class RayMarcherWebGL {
       // Scene state
       // this.hasShape = false;
       this.shapeType = 0;
-      // this.shapePosition = [0.0, 0.0, 0.0];
+      this.currentShapeColor = [1.0, 0.4, 0.7];
       this.shapes = [];
       this.enableClouds = false;
 
@@ -113,6 +113,7 @@ class RayMarcherWebGL {
         this.program,
         "shapePositions",
       ),
+      shapeColors: this.gl.getUniformLocation(this.program, "shapeColors"),
       enableClouds: this.gl.getUniformLocation(this.program, "enableClouds"),
     };
   }
@@ -216,29 +217,14 @@ class RayMarcherWebGL {
     const clearButton = document.getElementById("clearButton");
     clearButton.addEventListener("click", () => this.clearShapes());
 
+    const shapeColorPicker = document.getElementById("shapeColor");
+    shapeColorPicker.addEventListener("input", (e) => {
+      this.currentShapeColor = this.hexToRgb(e.target.value);
+    });
+
     const enableCloudsCheckbox = document.getElementById("enableClouds");
     enableCloudsCheckbox.addEventListener("change", (e) => {
       this.enableClouds = e.target.checked;
-    });
-
-    // Shape position sliders
-    const shapeXSlider = document.getElementById("shapeX");
-    const shapeYSlider = document.getElementById("shapeY");
-    const shapeZSlider = document.getElementById("shapeZ");
-
-    shapeXSlider.addEventListener("input", (e) => {
-      // this.shapePosition[0] = parseFloat(e.target.value);
-      document.getElementById("shapeXValue").textContent = e.target.value;
-    });
-
-    shapeYSlider.addEventListener("input", (e) => {
-      // this.shapePosition[1] = parseFloat(e.target.value);
-      document.getElementById("shapeYValue").textContent = e.target.value;
-    });
-
-    shapeZSlider.addEventListener("input", (e) => {
-      // this.shapePosition[2] = parseFloat(e.target.value);
-      document.getElementById("shapeZValue").textContent = e.target.value;
     });
   }
 
@@ -276,18 +262,11 @@ class RayMarcherWebGL {
       }
     }
 
-    this.shapes.push({ type: this.shapeType, position: [...spawnPoint] });
-
-    // Update sliders
-    document.getElementById("shapeX").value = spawnPoint[0];
-    document.getElementById("shapeY").value = spawnPoint[1];
-    document.getElementById("shapeZ").value = spawnPoint[2];
-    document.getElementById("shapeXValue").textContent =
-      spawnPoint[0].toFixed(2);
-    document.getElementById("shapeYValue").textContent =
-      spawnPoint[1].toFixed(2);
-    document.getElementById("shapeZValue").textContent =
-      spawnPoint[2].toFixed(2);
+    this.shapes.push({
+      type: this.shapeType,
+      position: [...spawnPoint],
+      color: [...this.currentShapeColor],
+    });
   }
 
   clearShapes() {
@@ -411,14 +390,19 @@ class RayMarcherWebGL {
     if (count > 0) {
       const positions = new Float32Array(count * 3);
       const types = new Int32Array(count);
+      const colors = new Float32Array(count * 3);
       for (let i = 0; i < count; i++) {
         positions[i * 3 + 0] = this.shapes[i].position[0];
         positions[i * 3 + 1] = this.shapes[i].position[1];
         positions[i * 3 + 2] = this.shapes[i].position[2];
         types[i] = this.shapes[i].type;
+        colors[i * 3 + 0] = this.shapes[i].color[0];
+        colors[i * 3 + 1] = this.shapes[i].color[1];
+        colors[i * 3 + 2] = this.shapes[i].color[2];
       }
       this.gl.uniform3fv(this.uniforms.shapePositions, positions);
       this.gl.uniform1iv(this.uniforms.shapeTypes, types);
+      this.gl.uniform3fv(this.uniforms.shapeColors, colors);
     }
 
     // Draw
@@ -450,6 +434,14 @@ class RayMarcherWebGL {
       a[2] * b[0] - a[0] * b[2],
       a[0] * b[1] - a[1] * b[0],
     ];
+  }
+
+  hexToRgb(hex) {
+    const normalized = hex.replace("#", "");
+    const red = parseInt(normalized.slice(0, 2), 16) / 255.0;
+    const green = parseInt(normalized.slice(2, 4), 16) / 255.0;
+    const blue = parseInt(normalized.slice(4, 6), 16) / 255.0;
+    return [red, green, blue];
   }
 }
 

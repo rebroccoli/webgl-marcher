@@ -12,6 +12,7 @@ uniform vec3 cameraTarget;
 uniform int shapeCount;
 uniform int shapeTypes[64];
 uniform vec3 shapePositions[64];
+uniform vec3 shapeColors[64];
 uniform bool enableClouds;
 
 // Ray marching constants
@@ -231,12 +232,15 @@ vec3 calculateLighting(vec3 p, vec3 normal, vec3 viewDir, int hitObject, int sha
     
     vec3 baseColor;
     if (hitObject == 1) {
-        if (shapeIdx >= 0 && shapeTypes[shapeIdx] == 0) {
+        if (shapeIdx >= 0) {
+            baseColor = shapeColors[shapeIdx];
+        } else if (shapeIdx >= 0 && shapeTypes[shapeIdx] == 0) {
             baseColor = vec3(0.8, 0.8, 0.9);
         } else {
             baseColor = vec3(1.0, 0.4, 0.7);
         }
     } else {
+        // Checkerboard floor pattern
         vec2 checker = floor(p.xz);
         float pattern = mod(checker.x + checker.y, 2.0);
         baseColor = mix(vec3(0.3, 0.5, 0.3), vec3(0.5, 0.7, 0.5), pattern);
