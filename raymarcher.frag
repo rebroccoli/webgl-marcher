@@ -115,6 +115,31 @@ float sdBox(vec3 p, vec3 b) {
     return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0);
 }
 
+// Signed distance for a square-base pyramid (apex above center)
+float sdPyramid(vec3 p, float s) {
+    // Scale to unit pyramid, compute SDF in unit space, then scale back
+    vec3 pp = p / s;
+
+    // Define side plane normals (computed from apex at (0,1,0) and base at y = -1)
+    const vec3 n1 = normalize(vec3(2.0, 1.0, 0.0)); // +x side
+    const vec3 n2 = normalize(vec3(-2.0, 1.0, 0.0)); // -x side
+    const vec3 n3 = normalize(vec3(0.0, 1.0, 2.0)); // +z side
+    const vec3 n4 = normalize(vec3(0.0, 1.0, -2.0)); // -z side
+
+    // Planes pass through apex at (0,1,0)
+    float d1 = dot(n1, pp) - dot(n1, vec3(0.0, 1.0, 0.0));
+    float d2 = dot(n2, pp) - dot(n2, vec3(0.0, 1.0, 0.0));
+    float d3 = dot(n3, pp) - dot(n3, vec3(0.0, 1.0, 0.0));
+    float d4 = dot(n4, pp) - dot(n4, vec3(0.0, 1.0, 0.0));
+
+    // Base plane at y = -1 (unit space)
+    float db = -pp.y - 1.0;
+
+    // Signed distance to convex pyramid is the max of plane distances
+    float d = max(max(max(d1, d2), max(d3, d4)), db);
+    return d * s;
+}
+
 mat3 rotateY(float theta) {
     float c = cos(theta);
     float s = sin(theta);
@@ -153,9 +178,15 @@ float ssubtract(float a, float b, float k) {
 float shapeSDF(vec3 localP, int type) {
     if (type == 0) {
         return sdSphere(localP, 1.0);
-    } else {
+    } else if (type == 1) {
         vec3 rotatedP = rotateY(0.785398) * rotateX(0.523599) * localP;
         return sdBox(rotatedP, vec3(0.7, 0.7, 0.7));
+    } else if (type == 2) {
+        // Square-base pyramid scaled to roughly match other shapes
+        return sdPyramid(localP, 0.9);
+    } else {
+        // Fallback to sphere
+        return sdSphere(localP, 1.0);
     }
 }
 
