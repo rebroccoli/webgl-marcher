@@ -137,6 +137,11 @@ float sdPlane(vec3 p, vec3 n, float h) {
     return dot(p, n) + h;
 }
 
+float smin(float a, float b, float k) {
+    float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
+    return mix(b, a, h) - k * h * (1.0 - h);
+}
+
 float shapeSDF(vec3 localP, int type) {
     if (type == 0) {
         return sdSphere(localP, 1.0);
@@ -150,7 +155,7 @@ float sceneSDF(vec3 p) {
     float shape = MAX_DIST;
     
     for (int i = 0; i < shapeCount; i++) {
-        shape = min(shape, shapeSDF(p - shapePositions[i], shapeTypes[i]));
+        shape = smin(shape, shapeSDF(p - shapePositions[i], shapeTypes[i]), 0.4);
     }
     
     float ground = sdPlane(p, vec3(0.0, 1.0, 0.0), 1.0);
@@ -282,6 +287,21 @@ vec3 marchClouds(vec3 ro, vec3 rd, float maxDistToObject) {
     return cloudColor;
 }
 
+vec3 staticSkyClouds(vec3 rd) {
+    float skyHeight = max(rd.y + 0.35, 0.25);
+    vec2 skyUV = rd.xz / skyHeight;
+
+    float cloudShape = fbm(vec3(skyUV * 1.65, 2.0));
+    cloudShape = cloudShape * 0.85 + 0.06;
+    cloudShape += fbm(vec3(skyUV * 3.4 + vec2(7.3, 2.1), 5.1)) * 0.25;
+
+    float clouds = smoothstep(0.50, 0.74, cloudShape);
+    float horizonFade = smoothstep(-0.1, 0.45, rd.y);
+
+    vec3 cloudColor = vec3(1.0);
+    return cloudColor * clouds * horizonFade;
+}
+
 void main() {
     // Normalize fragment coordinates to NDC space and correct for aspect ratio
     vec2 uv = fragCoord;
@@ -314,10 +334,10 @@ void main() {
         // Sky color - light blue base
         finalColor = vec3(0.5, 0.7, 0.9);
         
-        // Render clouds on top if enabled
+        // Render static sky clouds if enabled
         if (enableClouds) {
-            vec3 cloudColor = marchClouds(cameraPosition, rayDir, MAX_DIST);
-            finalColor += cloudColor;
+            vec3 cloudColor = staticSkyClouds(rayDir);
+            finalColor = mix(finalColor, finalColor + cloudColor, 0.75);
         }
     }
     
