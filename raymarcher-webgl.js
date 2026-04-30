@@ -39,6 +39,7 @@ class RayMarcherWebGL {
       // Scene state
       // this.hasShape = false;
       this.shapeType = 0;
+      this.shapeMode = 0; // 0 = add, 1 = subtract
       this.currentShapeColor = [1.0, 0.4, 0.7];
       this.shapes = [];
       this.enableClouds = false;
@@ -109,6 +110,7 @@ class RayMarcherWebGL {
       cameraTarget: this.gl.getUniformLocation(this.program, "cameraTarget"),
       shapeCount: this.gl.getUniformLocation(this.program, "shapeCount"),
       shapeTypes: this.gl.getUniformLocation(this.program, "shapeTypes"),
+      shapeModes: this.gl.getUniformLocation(this.program, "shapeModes"),
       shapePositions: this.gl.getUniformLocation(
         this.program,
         "shapePositions",
@@ -211,6 +213,11 @@ class RayMarcherWebGL {
       this.shapeType = parseInt(e.target.value);
     });
 
+    const shapeModeSelect = document.getElementById("shapeMode");
+    shapeModeSelect.addEventListener("change", (e) => {
+      this.shapeMode = parseInt(e.target.value);
+    });
+
     const spawnButton = document.getElementById("spawnButton");
     spawnButton.addEventListener("click", () => this.spawnShape());
 
@@ -264,6 +271,7 @@ class RayMarcherWebGL {
 
     this.shapes.push({
       type: this.shapeType,
+      mode: this.shapeMode,
       position: [...spawnPoint],
       color: [...this.currentShapeColor],
     });
@@ -390,18 +398,21 @@ class RayMarcherWebGL {
     if (count > 0) {
       const positions = new Float32Array(count * 3);
       const types = new Int32Array(count);
+      const modes = new Int32Array(count);
       const colors = new Float32Array(count * 3);
       for (let i = 0; i < count; i++) {
         positions[i * 3 + 0] = this.shapes[i].position[0];
         positions[i * 3 + 1] = this.shapes[i].position[1];
         positions[i * 3 + 2] = this.shapes[i].position[2];
         types[i] = this.shapes[i].type;
+        modes[i] = this.shapes[i].mode;
         colors[i * 3 + 0] = this.shapes[i].color[0];
         colors[i * 3 + 1] = this.shapes[i].color[1];
         colors[i * 3 + 2] = this.shapes[i].color[2];
       }
       this.gl.uniform3fv(this.uniforms.shapePositions, positions);
       this.gl.uniform1iv(this.uniforms.shapeTypes, types);
+      this.gl.uniform1iv(this.uniforms.shapeModes, modes);
       this.gl.uniform3fv(this.uniforms.shapeColors, colors);
     }
 

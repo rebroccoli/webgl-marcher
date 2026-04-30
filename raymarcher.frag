@@ -11,6 +11,7 @@ uniform vec3 cameraPosition;
 uniform vec3 cameraTarget;
 uniform int shapeCount;
 uniform int shapeTypes[64];
+uniform int shapeModes[64]; // 0 = add, 1 = subtract
 uniform vec3 shapePositions[64];
 uniform vec3 shapeColors[64];
 uniform bool enableClouds;
@@ -143,6 +144,12 @@ float smin(float a, float b, float k) {
     return mix(b, a, h) - k * h * (1.0 - h);
 }
 
+// Smooth subtraction: carves b out of a
+float ssubtract(float a, float b, float k) {
+    float h = clamp(0.5 - 0.5 * (a + b) / k, 0.0, 1.0);
+    return mix(a, -b, h) + k * h * (1.0 - h);
+}
+
 float shapeSDF(vec3 localP, int type) {
     if (type == 0) {
         return sdSphere(localP, 1.0);
@@ -153,10 +160,18 @@ float shapeSDF(vec3 localP, int type) {
 }
 
 float sceneSDF(vec3 p) {
+    // Pass 1: union all additive shapes
     float shape = MAX_DIST;
-    
     for (int i = 0; i < shapeCount; i++) {
-        shape = smin(shape, shapeSDF(p - shapePositions[i], shapeTypes[i]), 0.4);
+        if (shapeModes[i] == 0) {
+            shape = smin(shape, shapeSDF(p - shapePositions[i], shapeTypes[i]), 0.4);
+        }
+    }
+    // Pass 2: subtract all subtractive shapes
+    for (int i = 0; i < shapeCount; i++) {
+        if (shapeModes[i] == 1) {
+            shape = ssubtract(shape, shapeSDF(p - shapePositions[i], shapeTypes[i]), 0.2);
+        }
     }
     
     float ground = sdPlane(p, vec3(0.0, 1.0, 0.0), 1.0);
@@ -165,9 +180,15 @@ float sceneSDF(vec3 p) {
 
 int getHitObject(vec3 p) {
     float shape = MAX_DIST;
-
     for (int i = 0; i < shapeCount; i++) {
-        shape = min(shape, shapeSDF(p - shapePositions[i], shapeTypes[i]));
+        if (shapeModes[i] == 0) {
+            shape = min(shape, shapeSDF(p - shapePositions[i], shapeTypes[i]));
+        }
+    }
+    for (int i = 0; i < shapeCount; i++) {
+        if (shapeModes[i] == 1) {
+            shape = max(shape, -shapeSDF(p - shapePositions[i], shapeTypes[i]));
+        }
     }
     
     float ground = sdPlane(p, vec3(0.0, 1.0, 0.0), 1.0);
@@ -185,10 +206,12 @@ int getHitShapeIndex(vec3 p) {
     int idx = -1;
 
     for (int i = 0; i < shapeCount; i++) {
-        float d = shapeSDF(p - shapePositions[i], shapeTypes[i]);
-        if (d < best) {
-            best = d;
-            idx = i;
+        if (shapeModes[i] == 0) {
+            float d = shapeSDF(p - shapePositions[i], shapeTypes[i]);
+            if (d < best) {
+                best = d;
+                idx = i;
+            }
         }
     }
 
