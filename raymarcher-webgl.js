@@ -109,7 +109,10 @@ class RayMarcherWebGL {
       cameraTarget: this.gl.getUniformLocation(this.program, "cameraTarget"),
       shapeCount: this.gl.getUniformLocation(this.program, "shapeCount"),
       shapeTypes: this.gl.getUniformLocation(this.program, "shapeTypes"),
-      shapePositions: this.gl.getUniformLocation(this.program, "shapePositions"),
+      shapePositions: this.gl.getUniformLocation(
+        this.program,
+        "shapePositions",
+      ),
       enableClouds: this.gl.getUniformLocation(this.program, "enableClouds"),
     };
   }
@@ -210,6 +213,9 @@ class RayMarcherWebGL {
     const spawnButton = document.getElementById("spawnButton");
     spawnButton.addEventListener("click", () => this.spawnShape());
 
+    const clearButton = document.getElementById("clearButton");
+    clearButton.addEventListener("click", () => this.clearShapes());
+
     const enableCloudsCheckbox = document.getElementById("enableClouds");
     enableCloudsCheckbox.addEventListener("change", (e) => {
       this.enableClouds = e.target.checked;
@@ -247,7 +253,6 @@ class RayMarcherWebGL {
   }
 
   spawnShape() {
-
     if (this.shapes.length >= MAX_SHAPES) {
       console.warn("Max shapes reached");
       return;
@@ -283,6 +288,11 @@ class RayMarcherWebGL {
       spawnPoint[1].toFixed(2);
     document.getElementById("shapeZValue").textContent =
       spawnPoint[2].toFixed(2);
+  }
+
+  clearShapes() {
+    this.shapes = [];
+    this.updateStatus("All objects cleared");
   }
 
   updateCamera(deltaTime) {
